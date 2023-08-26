@@ -161,7 +161,7 @@ def main():
             print("What are you afraid of?")
             break
         else:
-            print("That's not on the menu!)
+            print("That's not on the menu!")
 
 if __name__ == "__main__":
     main()
