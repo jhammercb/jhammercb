@@ -4,6 +4,11 @@ import os
 import subprocess
 import logging
 
+# Check if script is run with sudo
+if os.geteuid() != 0:
+    print("Error: You need to run this script as root using sudo.")
+    exit(1)
+
 # Setting up logging
 logging.basicConfig(filename='fwsetup.log', level=logging.INFO)
 
