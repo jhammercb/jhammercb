@@ -123,6 +123,11 @@ def unconfigure_dns_fw():
     print("Restoring resolv.conf...")
     execute_command("mv /etc/resolv.conf.backup /etc/resolv.conf")
 
+    # Enable and restart systemd-resolved
+    print("Restoring systemd-resolved service")
+    execute_command("sudo systemctl enable systemd-resolved")
+    execute_command("sudo systemctl restart systemd-resolved")
+
     print("DNS FW unconfiguration completed successfully!")
 
 def main():
@@ -156,7 +161,7 @@ def main():
             print("What are you afraid of?")
             break
         else:
-            print("Invalid choice!")
+            print("That's not on the menu!)
 
 if __name__ == "__main__":
     main()
