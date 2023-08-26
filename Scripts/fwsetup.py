@@ -9,11 +9,19 @@ logging.basicConfig(filename='fwsetup.log', level=logging.INFO)
 
 def execute_command(cmd):
     """Execute the given command on the shell and return its output."""
-    return subprocess.check_output(cmd, shell=True, text=True, stderr=subprocess.PIPE).strip()
+    try:
+        return subprocess.check_output(cmd, shell=True, text=True, stderr=subprocess.PIPE).strip()
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error executing '{cmd}': {e.stderr}")
+        print(f"Error: {e.stderr}")
+        exit(1)
 
 def backup_file(filename):
     """Create a backup of the given file."""
-    execute_command(f"cp {filename} {filename}.backup")
+    if os.path.exists(filename):
+        execute_command(f"cp {filename} {filename}.backup")
+    else:
+        print(f"Warning: {filename} does not exist. Skipping backup.")
 
 def write_to_file(filename, content):
     """Write content to a given file."""
@@ -34,7 +42,12 @@ def validate_ip(ip_address):
     return True
 
 def setup_dns_fw(ip_address):
+    print("Starting DNS FW setup...")
+
+    print("Backing up current netplan configuration...")
     backup_file('/etc/netplan/50-cloud-init.yaml')
+
+    print("Writing new netplan configuration...")
     netplan_content = f'''
 network:
     ethernets:
@@ -49,6 +62,7 @@ network:
     write_to_file('/etc/netplan/50-cloud-init.yaml', netplan_content)
 
     # Set up IP tables
+    print("Configuring IP tables...")
     iptables_commands = [
         "iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE",
         "echo 1 > /proc/sys/net/ipv4/ip_forward",
@@ -62,11 +76,13 @@ network:
         execute_command(cmd)
 
     # Install required packages
+    print("Installing required packages...")
     packages = ["iptables", "dnsmasq"]
     for pkg in packages:
         execute_command(f"sudo apt install -y {pkg}")
 
     # Add entries to dnsmasq.conf
+    print("Updating dnsmasq configuration...")
     backup_file('/etc/dnsmasq.conf')
     dnsmasq_entries = [
         "server=/.cloudbrink.com/8.8.8.8",
@@ -78,18 +94,31 @@ network:
             f.write(entry + "\n")
 
     # Set nameserver in resolv.conf
+    print("Setting nameserver in resolv.conf...")
     backup_file('/etc/resolv.conf')
     write_to_file('/etc/resolv.conf', "nameserver 1.1.1.1")
 
     # Disable and stop systemd-resolved service
+    print("Disabling and stopping systemd-resolved service...")
     execute_command("sudo systemctl disable systemd-resolved")
     execute_command("sudo systemctl stop systemd-resolved")
 
+    print("DNS FW setup completed successfully!")
+
 def unconfigure_dns_fw():
+    print("Starting DNS FW unconfiguration...")
+
     # Restore backed up files
+    print("Restoring netplan configuration...")
     execute_command("mv /etc/netplan/50-cloud-init.yaml.backup /etc/netplan/50-cloud-init.yaml")
+
+    print("Restoring dnsmasq configuration...")
     execute_command("mv /etc/dnsmasq.conf.backup /etc/dnsmasq.conf")
+
+    print("Restoring resolv.conf...")
     execute_command("mv /etc/resolv.conf.backup /etc/resolv.conf")
+
+    print("DNS FW unconfiguration completed successfully!")
 
 def main():
     while True:
