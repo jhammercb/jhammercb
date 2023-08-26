@@ -1,63 +1,41 @@
 #!/usr/bin/env python3
+
 import os
 import subprocess
+import logging
 
-def execute_command(cmd, suppress_errors=False):
+# Setting up logging
+logging.basicConfig(filename='fwsetup.log', level=logging.INFO)
+
+def execute_command(cmd):
     """Execute the given command on the shell and return its output."""
-    stderr_dest = subprocess.DEVNULL if suppress_errors else None
-
-    try:
-        return subprocess.check_output(cmd, shell=True, text=True, stderr=stderr_dest).strip()
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to execute command: {cmd}. Error: {e}")
-        return ""
+    return subprocess.check_output(cmd, shell=True, text=True, stderr=subprocess.PIPE).strip()
 
 def backup_file(filename):
-    """Backup the given file with a .backup extension."""
-    os.system(f"sudo cp {filename} {filename}.backup")
-
-def restore_backup(filename):
-    """Restore a previously backed up file."""
-    if os.path.exists(f"{filename}.backup"):
-        os.system(f"sudo mv {filename}.backup {filename}")
+    """Create a backup of the given file."""
+    execute_command(f"cp {filename} {filename}.backup")
 
 def write_to_file(filename, content):
     """Write content to a given file."""
     with open(filename, 'w') as f:
         f.write(content)
 
-def check_netplan_config(ip_address):
-    content = execute_command("sudo cat /etc/netplan/50-cloud-init.yaml")
-    expected_eth1_config = f"addresses: [{ip_address}/24]"
-    return expected_eth1_config in content
-
-def check_iptables_rules():
-    output = execute_command("sudo iptables -t nat -L -v -n")
-    return "MASQUERADE  all  --  anywhere             anywhere" in output
-
-def check_ip_forward():
-    return execute_command("sudo cat /proc/sys/net/ipv4/ip_forward") == "1"
-
-def check_dns_forwarders():
-    content = execute_command("sudo cat /etc/dnsmasq.conf")
-    return all(domain in content for domain in [".cloudbrink.com", ".okta.com", ".oktacdn.com"])
-
-def check_nameserver():
-    content = execute_command("sudo cat /etc/resolv.conf")
-    return "nameserver 1.1.1.1" in content
+def validate_ip(ip_address):
+    """Basic IP validation."""
+    parts = ip_address.split(".")
+    if len(parts) != 4:
+        return False
+    for item in parts:
+        try:
+            if not 0 <= int(item) <= 255:
+                return False
+        except ValueError:
+            return False
+    return True
 
 def setup_dns_fw(ip_address):
-    # Backup existing configurations
     backup_file('/etc/netplan/50-cloud-init.yaml')
-    backup_file('/etc/dnsmasq.conf')
-    backup_file('/etc/resolv.conf')
-
-    # Configure the netplan
-    netplan_content = f'''# This file is generated from information provided by the datasource.  Changes
-# to it will not persist across an instance reboot.  To disable cloud-init's
-# network configuration capabilities, write a file
-# /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg with the following:
-# network: {{config: disabled}}
+    netplan_content = f'''
 network:
     ethernets:
         eth0:
@@ -67,28 +45,29 @@ network:
             dhcp4: false
             addresses: [{ip_address}/24]
     version: 2
-'''
+    '''
     write_to_file('/etc/netplan/50-cloud-init.yaml', netplan_content)
 
     # Set up IP tables
     iptables_commands = [
-        "sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE",
-        "echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward",
-        "sudo iptables -I OUTPUT -o eth0 -d 8.8.8.8 -j ACCEPT",
-        "sudo iptables -I OUTPUT -o eth0 -p udp --dport 9993 -j ACCEPT",
-        "sudo iptables -I OUTPUT -o eth0 -p tcp --sport 22 -j ACCEPT",
-        "sudo iptables -I OUTPUT -o eth0 -p udp --dport 443 -j ACCEPT",
-        "sudo iptables -A OUTPUT -o eth0 -d 1.1.1.1 -j DROP"
+        "iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE",
+        "echo 1 > /proc/sys/net/ipv4/ip_forward",
+        "iptables -I OUTPUT -o eth0 -d 8.8.8.8 -j ACCEPT",
+        "iptables -I OUTPUT -o eth0 -p udp --dport 9993 -j ACCEPT",
+        "iptables -I OUTPUT -o eth0 -p tcp --sport 22 -j ACCEPT",
+        "iptables -I OUTPUT -o eth0 -p udp --dport 443 -j ACCEPT",
+        "iptables -A OUTPUT -o eth0 -d 1.1.1.1 -j DROP"
     ]
     for cmd in iptables_commands:
-        execute_command(cmd, suppress_errors=True)
+        execute_command(cmd)
 
     # Install required packages
     packages = ["iptables", "dnsmasq"]
     for pkg in packages:
-        execute_command(f"sudo apt install -y {pkg}", suppress_errors=True)
+        execute_command(f"sudo apt install -y {pkg}")
 
     # Add entries to dnsmasq.conf
+    backup_file('/etc/dnsmasq.conf')
     dnsmasq_entries = [
         "server=/.cloudbrink.com/8.8.8.8",
         "server=/.okta.com/8.8.8.8",
@@ -99,41 +78,51 @@ network:
             f.write(entry + "\n")
 
     # Set nameserver in resolv.conf
+    backup_file('/etc/resolv.conf')
     write_to_file('/etc/resolv.conf', "nameserver 1.1.1.1")
 
     # Disable and stop systemd-resolved service
-    execute_command("sudo systemctl disable systemd-resolved", suppress_errors=True)
-    execute_command("sudo systemctl stop systemd-resolved", suppress_errors=True)
-
-    # Verification checks
-    if not check_netplan_config(ip_address):
-        print("Error: Netplan configuration for eth1 is not as expected.")
-    if not check_iptables_rules():
-        print("Error: IPTABLES MASQUERADE rule not found.")
-    if not check_ip_forward():
-        print("Error: IP Forwarding is not enabled.")
-    if not check_dns_forwarders():
-        print("Error: DNS forwarders not configured correctly in dnsmasq.conf.")
-    if not check_nameserver():
-        print("Error: Nameserver in resolv.conf is not as expected.")
-    else:
-        print("All configurations seem to be applied correctly!")
+    execute_command("sudo systemctl disable systemd-resolved")
+    execute_command("sudo systemctl stop systemd-resolved")
 
 def unconfigure_dns_fw():
-    restore_backup('/etc/netplan/50-cloud-init.yaml')
-    restore_backup('/etc/dnsmasq.conf')
-    restore_backup('/etc/resolv.conf')
-    print("All configurations have been restored to their previous state!")
+    # Restore backed up files
+    execute_command("mv /etc/netplan/50-cloud-init.yaml.backup /etc/netplan/50-cloud-init.yaml")
+    execute_command("mv /etc/dnsmasq.conf.backup /etc/dnsmasq.conf")
+    execute_command("mv /etc/resolv.conf.backup /etc/resolv.conf")
 
 def main():
-    choice = input("Choose an option:\n1: Setup DNS FW\n2: Unconfigure DNS FW\nEnter your choice (1/2): ")
-    if choice == "1":
-        ip_address = input("Please enter the IP address for eth1 (e.g. 192.168.3.1): ")
-        setup_dns_fw(ip_address)
-    elif choice == "2":
-        unconfigure_dns_fw()
-    else:
-        print("Invalid choice!")
+    while True:
+        print("\nChoose an option:")
+        print("1: Setup DNS FW")
+        print("2: Unconfigure DNS FW")
+        print("3: Exit")
+        
+        choice = input("Enter your choice (1/2/3): ")
+
+        if choice == "1":
+            ip_address = input("Please enter the IP address for eth1 (e.g. 192.168.3.1): ")
+            if validate_ip(ip_address):
+                confirmation = input(f"You're about to set eth1's IP to {ip_address}. Are you sure? (yes/no) ")
+                if confirmation.lower() == "yes":
+                    setup_dns_fw(ip_address)
+                    logging.info(f"DNS FW set up with IP address: {ip_address}")
+                else:
+                    print("Setup DNS FW was cancelled.")
+            else:
+                print("Invalid IP address entered.")
+        elif choice == "2":
+            confirmation = input("You're about to unconfigure the DNS FW. This will revert the settings. Are you sure? (yes/no) ")
+            if confirmation.lower() == "yes":
+                unconfigure_dns_fw()
+                logging.info("DNS FW was unconfigured.")
+            else:
+                print("Unconfigure DNS FW was cancelled.")
+        elif choice == "3":
+            print("What are you afraid of?")
+            break
+        else:
+            print("Invalid choice!")
 
 if __name__ == "__main__":
     main()
