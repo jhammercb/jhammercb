@@ -3,6 +3,7 @@
 import os
 import subprocess
 import logging
+import time
 
 # Check if script is run with sudo
 if os.geteuid() != 0:
@@ -21,12 +22,23 @@ def execute_command(cmd):
         print(f"Error: {e.stderr}")
         exit(1)
 
+def show_progress(step):
+    print(f"{step}...", end="", flush=True)
+    time.sleep(1)
+    print("done!")
+
 def backup_file(filename):
     """Create a backup of the given file."""
     if os.path.exists(filename):
         execute_command(f"cp {filename} {filename}.backup")
     else:
         print(f"Warning: {filename} does not exist. Skipping backup.")
+
+def files_to_backup(ip_address):
+    # Backup configurations
+    backup_file('/etc/netplan/50-cloud-init.yaml')
+    backup_file('/etc/dnsmasq.conf')
+    backup_file('/etc/resolv.conf')
 
 def write_to_file(filename, content):
     """Write content to a given file."""
@@ -65,6 +77,10 @@ network:
     version: 2
     '''
     write_to_file('/etc/netplan/50-cloud-init.yaml', netplan_content)
+
+ execute_command("sudo netplan apply")
+    if not check_netplan_config(ip_address):
+        raise Exception("Netplan configuration for eth1 is not as expected.")
 
     # Set up IP tables
     print("Configuring IP tables...")
@@ -117,6 +133,11 @@ def unconfigure_dns_fw():
     print("Restoring netplan configuration...")
     execute_command("mv /etc/netplan/50-cloud-init.yaml.backup /etc/netplan/50-cloud-init.yaml")
 
+    #Apply the original netplan settings
+    execute_command("sudo netplan apply")
+    if check_netplan_config("{ip_address}")
+        raise Exception("Failed to restore the original netplan configuration")
+
     print("Restoring dnsmasq configuration...")
     execute_command("mv /etc/dnsmasq.conf.backup /etc/dnsmasq.conf")
 
@@ -135,9 +156,10 @@ def main():
         print("\nChoose an option:")
         print("1: Setup DNS FW")
         print("2: Unconfigure DNS FW")
-        print("3: Exit")
+        print("3: Setup Impairment Options")
+        print("4: Exit")
         
-        choice = input("Enter your choice (1/2/3): ")
+        choice = input("Enter your choice (1/2/3/4): ")
 
         if choice == "1":
             ip_address = input("Please enter the IP address for eth1 (e.g. 192.168.3.1): ")
@@ -158,7 +180,10 @@ def main():
             else:
                 print("Unconfigure DNS FW was cancelled.")
         elif choice == "3":
-            print("What are you afraid of?")
+            print("Work in progress, not yet ready")
+            break
+        elif choice == "4":
+            print("......")
             break
         else:
             print("That's not on the menu!")
