@@ -15,7 +15,12 @@ def install_dependencies():
 
 # Clear Impairments
 def clear_impairments(interface):
-    os.system(f"sudo tc qdisc del dev {interface} root")
+    try:
+        output = subprocess.check_output(f"tc qdisc show dev {interface}", shell=True).decode('utf-8')
+        if "qdisc netem" in output:
+            os.system(f"sudo tc qdisc del dev {interface} root")
+    except subprocess.CalledProcessError:
+        print(f"No existing qdisc found on interface {interface}. Skipping deletion.")
 
 #Set Desired Impairment    
 def set_impairments(interface, latency, loss):
