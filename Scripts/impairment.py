@@ -155,6 +155,7 @@ def main():
         
             clear_impairments(selected_interface)
             exempt_ports(selected_interface)
+            set_base_qdisc(selected_interface)
             set_impairments(selected_interface, latency, loss)
 
             if verify_impairments(selected_interface, latency, loss):
