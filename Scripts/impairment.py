@@ -80,12 +80,24 @@ def main():
     selected_interface = interfaces[interface_selection]
     
     while True:
-        print("Pick a level of latency:")
-        latency_choices = ["0ms", "5ms", "10ms"]
-        for i, choice in enumerate(latency_choices):
-            print(f"{i}. {choice}")
+        action = input("What would you like to do? (set/clear/exit): ").lower()
 
-        latency_selection = int(input("Enter the number corresponding to your choice: "))
+        if action == "exit":
+            print("Exiting.")
+            break
+
+        if action == "clear":
+            clear_impairments(selected_interface)
+            print(f"Network impairments cleared for interface: {selected_interface}")
+            continue
+
+        if action == "set":
+            print("Pick a level of latency:")
+            latency_choices = ["0ms", "5ms", "10ms"]
+            for i, choice in enumerate(latency_choices):
+                print(f"{i}. {choice}")
+
+            latency_selection = int(input("Enter the number corresponding to your choice: "))
         if latency_selection not in range(len(latency_choices)):
             print("Invalid selection, try again.")
             continue
