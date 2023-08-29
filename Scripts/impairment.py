@@ -2,6 +2,37 @@
 
 import os
 import subprocess
+import re
+
+# Verify outputs
+def run_command(command):
+    try:
+        output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT).decode('utf-8')
+        return output
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing command: {e.output}")
+        return 
+
+def verify_impairments(interface, latency, loss):
+    # Run command to get current qdisc settings
+    cmd_output = run_command(f"tc qdisc show dev {interface}")
+    
+    if cmd_output is None:
+        print("Failed to verify qdisc settings.")
+        return False
+
+    # Use regex to find the latency and loss settings in the output
+    latency_search = re.search(f"delay {latency}ms", cmd_output)
+    loss_search = re.search(f"loss {loss}%", cmd_output)
+
+    if latency_search and loss_search:
+        print(f"Verification succeeded. Latency: {latency}ms, Loss: {loss}% are set correctly.")
+        return True
+    else:
+        print("Verification failed. Settings may not be applied correctly.")
+        print("Current settings are:")
+        print(cmd_output)
+        return False
 
 # Check if script is run with sudo
 if os.geteuid() != 0:
@@ -108,7 +139,7 @@ def main():
                 latency = latency_choices[latency_selection].replace("ms", "")
         
             print("Then, pick a loss level:")
-            loss_choices = ["0%", "1%", "1.5%", "2%", "5%", "10%", "Custom"]
+            loss_choices = ["0%", "1%", "2%", "5%", "10%", "Custom"]
             for i, choice in enumerate(loss_choices):
                 print(f"{i}. {choice}")
 
@@ -125,9 +156,12 @@ def main():
             clear_impairments(selected_interface)
             set_base_qdisc(selected_interface)
             set_impairments(selected_interface, latency, loss)
-        
-            print(f"Network impairments set. Interface: {selected_interface}, Latency: {latency}ms, Loss: {loss}%")
-        
+
+            if verify_impairments(selected_interface, latency, loss):
+                print(f"Network impairments set successfully. Interface: {selected_interface}, Latency: {latency}ms, Loss: {loss}%")
+            else:
+                print("Failed to set network impairments. Please check your settings.")
+                
         should_continue = input("Would you like to set another impairment? (y/n): ")
         if should_continue.lower() != 'y':
             break
