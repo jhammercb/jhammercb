@@ -36,15 +36,33 @@ def clear_impairments(interface):
     except subprocess.CalledProcessError:
         print(f"No existing qdisc found on interface {interface}. Skipping deletion.")
 
-# Set the base qdisc settings so you dont lose access
-def set_base_qdisc(interface):
-    os.system(f"sudo tc qdisc add dev {interface} root handle 1: prio bands 2 priomap 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1")
-    os.system(f"sudo tc filter add dev {interface} parent 1: protocol ip prio 1 handle 0x10 u32 match ip dport 3389 0xffff flowid 1:1")
-    os.system(f"sudo tc filter add dev {interface} parent 1: protocol ip prio 1 handle 0x20 u32 match ip sport 22 0xffff flowid 1:1")
+# Check if the base qdisc is present
+def check_base_qdisc(interface):
+    try:
+        output = subprocess.check_output(f"tc qdisc show dev {interface}", shell=True).decode('utf-8')
+        return "qdisc prio 1:" in output
+    except subprocess.CalledProcessError:
+        return False
 
-#Set Desired Impairment    
+# Set the base qdisc settings so you don't lose access
+def set_base_qdisc(interface):
+    try:
+        # Clear existing root qdisc if any
+        subprocess.check_call(["sudo", "tc", "qdisc", "del", "dev", interface, "root"])
+    except subprocess.CalledProcessError:
+        print(f"No existing root qdisc to delete on {interface}")
+
+    try:
+        # Add new prio qdisc
+        subprocess.check_call(["sudo", "tc", "qdisc", "add", "dev", interface, "root", "handle", "1:", "prio"])
+        subprocess.check_call(["sudo", "tc", "filter", "add", "dev", interface, "parent", "1:", "protocol", "ip", "prio", "1", "u32", "match", "ip", "dport", "3389", "0xffff", "flowid", "1:1"])
+        subprocess.check_call(["sudo", "tc", "filter", "add", "dev", interface, "parent", "1:", "protocol", "ip", "prio", "1", "u32", "match", "ip", "sport", "22", "0xffff", "flowid", "1:1"])
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred while setting the base qdisc: {e}")
+
+# Set Desired Impairment
 def set_impairments(interface, latency, loss):
-    os.system(f"sudo tc qdisc add dev {interface} parent 1:2 handle 30: netem delay {latency}ms loss {loss}%")
+    subprocess.check_call(["sudo", "tc", "qdisc", "add", "dev", interface, "parent", "1:2", "handle", "30:", "netem", "delay", f"{latency}ms", "loss", f"{loss}%"])
 
 #Get the Interfaces to be picked
 def get_interfaces():
@@ -80,6 +98,10 @@ def main():
     selected_interface = interfaces[interface_selection]
     
     while True:
+        if not check_base_qdisc(selected_interface):
+            print("Base qdisc not found. Creating...")
+            set_base_qdisc(selected_interface)
+
         action = input("What would you like to do? (set/clear/exit): ").lower()
 
         if action == "exit":
