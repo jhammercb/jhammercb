@@ -67,11 +67,11 @@ def clear_impairments(interface):
     except subprocess.CalledProcessError:
         print(f"No existing qdisc found on interface {interface}. Skipping deletion.")
 
-# Exempt specific ports from impairments so you dont lose access
-def exempt_ports(interface):
-    run_command(f"sudo iptables -A OUTPUT -t mangle -p tcp --sport 22 -j MARK --set-mark 1")
-    run_command(f"sudo iptables -A OUTPUT -t mangle -p tcp --sport 3389 -j MARK --set-mark 1")
-    run_command(f"sudo tc filter add dev {interface} parent 1:0 protocol ip prio 1 handle 1 fw flowid 1:1")
+# Set the base qdisc settings so you dont lose access
+def set_base_qdisc(interface):
+    os.system(f"sudo tc qdisc add dev {interface} root handle 1: prio bands 2 priomap 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1")
+    os.system(f"sudo tc filter add dev {interface} parent 1: protocol ip prio 1 handle 0x10 u32 match ip dport 3389 0xffff flowid 1:1")
+    os.system(f"sudo tc filter add dev {interface} parent 1: protocol ip prio 1 handle 0x20 u32 match ip sport 22 0xffff flowid 1:1")
 
 #Set Desired Impairment    
 def set_impairments(interface, latency, loss):
@@ -154,7 +154,6 @@ def main():
                 loss = loss_choices[loss_selection].replace("%", "")
         
             clear_impairments(selected_interface)
-            exempt_ports(selected_interface)
             set_base_qdisc(selected_interface)
             set_impairments(selected_interface, latency, loss)
 
@@ -162,11 +161,6 @@ def main():
                 print(f"Network impairments set successfully. Interface: {selected_interface}, Latency: {latency}ms, Loss: {loss}%")
             else:
                 print("Failed to set network impairments. Please check your settings.")
-
-        elif action == "clear":
-            # Clear existing impairments and port exemptions
-            clear_impairments(selected_interface)
-            clear_exemptions(selected_interface)
                 
         should_continue = input("Would you like to set another impairment? (y/n): ")
         if should_continue.lower() != 'y':
