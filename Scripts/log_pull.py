@@ -1,4 +1,5 @@
-import os
+#!/usr/bin/env python3
+
 import zipfile
 import platform
 from datetime import datetime
