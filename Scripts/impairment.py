@@ -8,10 +8,24 @@ if os.geteuid() != 0:
     print("Error: You need to run this script as root using sudo.")
     exit(1)
 
+#Check if TC is already installed
+def is_tc_installed():
+    try:
+        subprocess.check_call(["tc", "-V"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return True
+    except subprocess.CalledProcessError:
+        return False
+    except FileNotFoundError:
+        return False
+
 # Install required Dependencies
 def install_dependencies():
-    os.system("sudo apt-get update")
-    os.system("sudo apt-get install -y tc")
+    if not is_tc_installed():
+        print("Installing tc...")
+        os.system("sudo apt-get update")
+        os.system("sudo apt-get install -y tc")
+    else:
+        print("tc is already installed.")
 
 # Clear Impairments
 def clear_impairments(interface):
@@ -22,9 +36,15 @@ def clear_impairments(interface):
     except subprocess.CalledProcessError:
         print(f"No existing qdisc found on interface {interface}. Skipping deletion.")
 
+# Set the base qdisc settings so you dont lose access
+def set_base_qdisc(interface):
+    os.system(f"sudo tc qdisc add dev {interface} root handle 1: prio bands 2 priomap 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1")
+    os.system(f"sudo tc filter add dev {interface} parent 1: protocol ip prio 1 handle 0x10 u32 match ip dport 3389 0xffff flowid 1:1")
+    os.system(f"sudo tc filter add dev {interface} parent 1: protocol ip prio 1 handle 0x20 u32 match ip sport 22 0xffff flowid 1:1")
+
 #Set Desired Impairment    
 def set_impairments(interface, latency, loss):
-    os.system(f"sudo tc qdisc add dev {interface} root netem delay {latency}ms loss {loss}%")
+    os.system(f"sudo tc qdisc add dev {interface} parent 1:2 handle 30: netem delay {latency}ms loss {loss}%")
 
 #Get the Interfaces to be picked
 def get_interfaces():
@@ -83,6 +103,7 @@ def main():
         loss = loss_choices[loss_selection].replace("%", "")
         
         clear_impairments(selected_interface)
+        set_base_qdisc(selected_interface)
         set_impairments(selected_interface, latency, loss)
         
         print(f"Network impairments set. Interface: {selected_interface}, Latency: {latency}ms, Loss: {loss}%")
