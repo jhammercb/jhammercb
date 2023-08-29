@@ -93,32 +93,40 @@ def main():
 
         if action == "set":
             print("Pick a level of latency:")
-            latency_choices = ["0ms", "5ms", "10ms"]
+            latency_choices = ["0ms", "5ms", "10ms", "Custom"]
             for i, choice in enumerate(latency_choices):
                 print(f"{i}. {choice}")
 
             latency_selection = int(input("Enter the number corresponding to your choice: "))
-        if latency_selection not in range(len(latency_choices)):
-            print("Invalid selection, try again.")
-            continue
-        latency = latency_choices[latency_selection].replace("ms", "")
-        
-        print("Then, pick a loss level:")
-        loss_choices = ["0%", "0.05%", "1%", "1.5%", "2%", "5%", "10%"]
-        for i, choice in enumerate(loss_choices):
-            print(f"{i}. {choice}")
+            if latency_selection not in range(len(latency_choices)):
+                print("Invalid selection, try again.")
+                continue
 
-        loss_selection = int(input("Enter the number corresponding to your choice: "))
-        if loss_selection not in range(len(loss_choices)):
-            print("Invalid selection, try again.")
-            continue
-        loss = loss_choices[loss_selection].replace("%", "")
+            if latency_choices[latency_selection] == "Custom":
+                latency = input("Enter custom latency in ms: ")
+            else:
+                latency = latency_choices[latency_selection].replace("ms", "")
         
-        clear_impairments(selected_interface)
-        set_base_qdisc(selected_interface)
-        set_impairments(selected_interface, latency, loss)
+            print("Then, pick a loss level:")
+            loss_choices = ["0%", "1%", "1.5%", "2%", "5%", "10%", "Custom"]
+            for i, choice in enumerate(loss_choices):
+                print(f"{i}. {choice}")
+
+            loss_selection = int(input("Enter the number corresponding to your choice: "))
+            if loss_selection not in range(len(loss_choices)):
+                print("Invalid selection, try again.")
+                continue
+
+            if loss_choices[loss_selection] == "Custom":
+                loss = input("Enter custom loss in percentage: ")
+            else:
+                loss = loss_choices[loss_selection].replace("%", "")
         
-        print(f"Network impairments set. Interface: {selected_interface}, Latency: {latency}ms, Loss: {loss}%")
+            clear_impairments(selected_interface)
+            set_base_qdisc(selected_interface)
+            set_impairments(selected_interface, latency, loss)
+        
+            print(f"Network impairments set. Interface: {selected_interface}, Latency: {latency}ms, Loss: {loss}%")
         
         should_continue = input("Would you like to set another impairment? (y/n): ")
         if should_continue.lower() != 'y':
