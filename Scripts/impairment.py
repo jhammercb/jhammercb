@@ -1,158 +1,99 @@
 #!/usr/bin/env python3
 
-import os
 import subprocess
+import sys
 
-# Check if script is run with sudo
-if os.geteuid() != 0:
-    print("Error: You need to run this script as root using sudo.")
-    exit(1)
-
-#Check if TC is already installed
-def is_tc_installed():
+def run_command(command):
     try:
-        subprocess.check_call(["tc", "-V"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return True
-    except subprocess.CalledProcessError:
-        return False
-    except FileNotFoundError:
-        return False
-
-# Install required Dependencies
-def install_dependencies():
-    if not is_tc_installed():
-        print("Installing tc...")
-        os.system("sudo apt-get update")
-        os.system("sudo apt-get install -y tc")
-    else:
-        print("tc is already installed.")
-
-# Clear Impairments
-def clear_impairments(interface):
-    try:
-        output = subprocess.check_output(f"tc qdisc show dev {interface}", shell=True).decode('utf-8')
-        if "qdisc netem" in output:
-            os.system(f"sudo tc qdisc del dev {interface} root")
-    except subprocess.CalledProcessError:
-        print(f"No existing qdisc found on interface {interface}. Skipping deletion.")
-
-# Check if the base qdisc is present
-def check_base_qdisc(interface):
-    try:
-        output = subprocess.check_output(f"tc qdisc show dev {interface}", shell=True).decode('utf-8')
-        return "qdisc prio 1:" in output
-    except subprocess.CalledProcessError:
-        return False
-
-# Set the base qdisc settings so you don't lose access
-def set_base_qdisc(interface):
-    try:
-        # Clear existing root qdisc if any
-        subprocess.check_call(["sudo", "tc", "qdisc", "del", "dev", interface, "root"])
-    except subprocess.CalledProcessError:
-        print(f"No existing root qdisc to delete on {interface}")
-
-    try:
-        # Add new prio qdisc
-        subprocess.check_call(["sudo", "tc", "qdisc", "add", "dev", interface, "root", "handle", "1:", "prio"])
-        subprocess.check_call(["sudo", "tc", "filter", "add", "dev", interface, "parent", "1:", "protocol", "ip", "prio", "1", "u32", "match", "ip", "dport", "3389", "0xffff", "flowid", "1:1"])
-        subprocess.check_call(["sudo", "tc", "filter", "add", "dev", interface, "parent", "1:", "protocol", "ip", "prio", "1", "u32", "match", "ip", "sport", "22", "0xffff", "flowid", "1:1"])
+        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
     except subprocess.CalledProcessError as e:
-        print(f"An error occurred while setting the base qdisc: {e}")
+        print(f"Command {e.cmd} failed with error code {e.returncode}")
 
-# Set Desired Impairment
-def set_impairments(interface, latency, loss):
-    subprocess.check_call(["sudo", "tc", "qdisc", "add", "dev", interface, "parent", "1:2", "handle", "30:", "netem", "delay", f"{latency}ms", "loss", f"{loss}%"])
+def list_interfaces():
+    output = subprocess.run(["ls", "/sys/class/net"], capture_output=True, text=True)
+    return output.stdout.strip().split("\n")
 
-#Get the Interfaces to be picked
-def get_interfaces():
-    try:
-        output = subprocess.check_output("ip link show", shell=True).decode('utf-8')
-        interfaces = []
-        for line in output.split("\n"):
-            if "mtu" in line:
-                interface = line.split(":")[1].strip().split(" ")[0]
-                interfaces.append(interface)
-        return interfaces
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return []
+def apply_qdisc(interface, latency, loss):
+    # Delete existing settings first
+    run_command(["sudo", "tc", "qdisc", "del", "dev", interface, "root"])
+    run_command(["sudo", "tc", "qdisc", "del", "dev", "ifb0", "root"])
+    
+    # Convert the latency and loss into integers and then into two halves for applying on interface and ifb0
+    latency_half = str(int(round(float(latency) / 2)))
+    loss_half = str(int(round(float(loss) / 2)))
+
+    # Add prio qdiscs and filters
+    run_command(["sudo", "tc", "qdisc", "add", "dev", interface, "root", "handle", "1:", "prio"])
+    run_command(["sudo", "tc", "qdisc", "add", "dev", interface, "parent", "1:1", "handle", "10:", "netem", "delay", latency_half + "ms"])
+    run_command(["sudo", "tc", "qdisc", "add", "dev", interface, "parent", "1:2", "handle", "20:", "netem", "loss", loss_half + "%"])
+    
+    # Excluding RDP and SSH from impairment on selected interface
+    run_command(["sudo", "tc", "filter", "add", "dev", interface, "parent", "1:", "protocol", "ip", "prio", "1", "handle", "0x10", "u32", "match", "ip", "dport", "3389", "0xffff", "flowid", "1:1"])
+    run_command(["sudo", "tc", "filter", "add", "dev", interface, "parent", "1:", "protocol", "ip", "prio", "1", "handle", "0x20", "u32", "match", "ip", "sport", "22", "0xffff", "flowid", "1:1"])
+    
+    # Excluding RDP and SSH from impairment on ifb0
+    run_command(["sudo", "tc", "qdisc", "add", "dev", "ifb0", "root", "handle", "1:", "prio"])
+    run_command(["sudo", "tc", "qdisc", "add", "dev", "ifb0", "parent", "1:1", "handle", "10:", "netem", "delay", latency_half + "ms"])
+    run_command(["sudo", "tc", "qdisc", "add", "dev", "ifb0", "parent", "1:2", "handle", "20:", "netem", "loss", loss_half + "%"])
+    run_command(["sudo", "tc", "filter", "add", "dev", "ifb0", "parent", "1:", "protocol", "ip", "prio", "1", "handle", "0x10", "u32", "match", "ip", "sport", "3389", "0xffff", "flowid", "1:1"])
+    run_command(["sudo", "tc", "filter", "add", "dev", "ifb0", "parent", "1:", "protocol", "ip", "prio", "1", "handle", "0x20", "u32", "match", "ip", "dport", "22", "0xffff", "flowid", "1:1"])
+
+def clear_qdisc(interface):
+    # Delete existing settings to clear configurations
+    run_command(["sudo", "tc", "qdisc", "del", "dev", interface, "root"])
+    run_command(["sudo", "tc", "qdisc", "del", "dev", "ifb0", "root"])
+
+def fetch_tc_output(interface):
+    # Fetch tc qdisc and tc filter show output for the given interface
+    qdisc_output = subprocess.run(["sudo", "tc", "qdisc", "show", "dev", interface], capture_output=True, text=True).stdout
+    filter_output = subprocess.run(["sudo", "tc", "filter", "show", "dev", interface], capture_output=True, text=True).stdout
+    return qdisc_output, filter_output
 
 def main():
-    install_dependencies()
-    
-    interfaces = get_interfaces()
-    if not interfaces:
-        print("No interfaces found. Exiting.")
-        return
-
-    print("Available network interfaces:")
+    interfaces = list_interfaces()
+    print("Available Interfaces:")
     for i, interface in enumerate(interfaces):
-        print(f"{i}. {interface}")
+        print(f"{i+1}. {interface}")
+
+    choice = int(input("Select the interface you want to set up or clear: "))
+    selected_interface = interfaces[choice - 1]
+
+    action = input("Do you want to apply or clear configurations? (apply/clear): ").strip().lower()
+
+    if action == "apply":
+        latency = input("Enter latency in ms: ")
+        loss = input("Enter loss percentage: ")
+        
+        apply_qdisc(selected_interface, latency, loss)
+        
+        print(f"\nLoss Applied: {loss}%")
+        print(f"Latency Applied: {latency}ms")
+
+        # Fetch and print tc qdisc and tc filter show outputs
+        qdisc_output, filter_output = fetch_tc_output(selected_interface)
+        print("\n--- tc qdisc show output ---")
+        print(qdisc_output)
+        print("--- tc filter show output ---")
+        print(filter_output)
     
-    interface_selection = int(input("Enter the number corresponding to the interface you want to configure: "))
-    if interface_selection not in range(len(interfaces)):
-        print("Invalid selection, exiting.")
-        return
-
-    selected_interface = interfaces[interface_selection]
+        # Get the IP address of the selected interface using `ip` command
+        ip_output = subprocess.run(["ip", "-4", "addr", "show", selected_interface], capture_output=True, text=True)
+        ip_address = None
+        for line in ip_output.stdout.strip().split("\n"):
+            if "inet" in line:
+                ip_address = line.split()[1].split("/")[0]
+                break
+        if ip_address:
+            print(f"Please configure your testing device with {ip_address} of {selected_interface} as the default gateway")
+        else:
+            print(f"Could not find the IP address for {selected_interface}. Please manually set the default gateway.")
     
-    while True:
-        if not check_base_qdisc(selected_interface):
-            print("Base qdisc not found. Creating...")
-            set_base_qdisc(selected_interface)
-
-        action = input("What would you like to do? (set/clear/exit): ").lower()
-
-        if action == "exit":
-            print("Exiting.")
-            break
-
-        if action == "clear":
-            clear_impairments(selected_interface)
-            print(f"Network impairments cleared for interface: {selected_interface}")
-            continue
-
-        if action == "set":
-            print("Pick a level of latency:")
-            latency_choices = ["0ms", "5ms", "10ms", "Custom"]
-            for i, choice in enumerate(latency_choices):
-                print(f"{i}. {choice}")
-
-            latency_selection = int(input("Enter the number corresponding to your choice: "))
-            if latency_selection not in range(len(latency_choices)):
-                print("Invalid selection, try again.")
-                continue
-
-            if latency_choices[latency_selection] == "Custom":
-                latency = input("Enter custom latency in ms: ")
-            else:
-                latency = latency_choices[latency_selection].replace("ms", "")
+    elif action == "clear":
+        clear_qdisc(selected_interface)
+        print(f"All impairments for {selected_interface} have been cleared.")
         
-            print("Then, pick a loss level:")
-            loss_choices = ["0%", "1%", "1.5%", "2%", "5%", "10%", "Custom"]
-            for i, choice in enumerate(loss_choices):
-                print(f"{i}. {choice}")
-
-            loss_selection = int(input("Enter the number corresponding to your choice: "))
-            if loss_selection not in range(len(loss_choices)):
-                print("Invalid selection, try again.")
-                continue
-
-            if loss_choices[loss_selection] == "Custom":
-                loss = input("Enter custom loss in percentage: ")
-            else:
-                loss = loss_choices[loss_selection].replace("%", "")
-        
-            clear_impairments(selected_interface)
-            set_base_qdisc(selected_interface)
-            set_impairments(selected_interface, latency, loss)
-        
-            print(f"Network impairments set. Interface: {selected_interface}, Latency: {latency}ms, Loss: {loss}%")
-        
-        should_continue = input("Would you like to set another impairment? (y/n): ")
-        if should_continue.lower() != 'y':
-            break
+    else:
+        print("Invalid option. Exiting.")
 
 if __name__ == "__main__":
     main()
