@@ -3,6 +3,11 @@
 import subprocess
 import sys
 
+# Check if script is run with sudo
+if os.geteuid() != 0:
+    print("Error: You need to run this script as root using sudo.")
+    exit(1)
+
 def run_command(command_list):
     try:
         subprocess.run(command_list, check=True, text=True, capture_output=True)
