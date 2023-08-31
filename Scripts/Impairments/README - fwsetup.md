@@ -57,14 +57,18 @@ chmod +x fwsetup.py
 sudo ./fwsetup.py
 ```
 ### Follow the prompts:
+```bash
 Choose an option:
 1: Setup DNS FW
 2: Unconfigure DNS FW
 3: Exit
 Enter your choice (1/2/3): 1
+```
 
-# Enter an IP address, this should be reachable from the network and device you want to test with. 
-# This IP will be what will need to be manually set for the default GW and DNS server of the testing device.
+Enter an IP address, this should be reachable from the network and device you want to test with. 
+This IP will be what will need to be manually set for the default GW and DNS server of the testing device.
+
+```bash
 Please enter the IP address for eth1 (e.g. 192.168.3.1): 192.168.200.1
 You're about to set eth1's IP to 192.168.200.1. Are you sure? (yes/no) yes
 Starting DNS FW setup...
@@ -76,6 +80,8 @@ Updating dnsmasq configuration...
 Setting nameserver in resolv.conf...
 Disabling and stopping systemd-resolved service...
 DNS FW setup completed successfully!
+```
+
 ---
 
 ## Future Plans 🚀
