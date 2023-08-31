@@ -8,5 +8,5 @@ You've found it. This is what you've been looking for.
 
 ## Connect:
 
-- **Slack**: @John Hammer.
+- **Slack**: @Hammer
 - **Email**: [john@cloudbrink.com](mailto:john@cloudbrink.com).
