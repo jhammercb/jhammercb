@@ -81,6 +81,43 @@ Setting nameserver in resolv.conf...
 Disabling and stopping systemd-resolved service...
 DNS FW setup completed successfully!
 ```
+---
+
+## Configurration outcomes
+
+iptables will be populated with an accept rule for 8.8.8.8 and deny for 1.1.1.1
+It will also create an allow rule for udp 443, tcp 22 (ssh), and udp 9993. These are for Cloudbrink to be able to make an outbound connection to the SaaS and Edges.
+
+```bash
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain FORWARD (policy ACCEPT)
+target     prot opt source               destination         
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+ACCEPT     udp  --  anywhere             anywhere             udp dpt:443
+ACCEPT     tcp  --  anywhere             anywhere             tcp spt:ssh
+ACCEPT     udp  --  anywhere             anywhere             udp dpt:9993
+ACCEPT     all  --  anywhere             8.8.8.8             
+DROP       all  --  anywhere             1.1.1.1   
+```
+
+Resolv.conf will get updated so the name server is specfically 1.1.1.1
+
+```bash
+nameserver 1.1.1.1
+```
+Dnsmasq.conf will be updated with the below records, so that when queried, will go the to the IP that is set to **ACCEPT** in iptables.
+
+```bash
+server=/.cloudbrink.com/8.8.8.8
+server=/.okta.com/8.8.8.8
+server=/.oktacdn.com/8.8.8.8
+```
+
+In this configuration, you can then allow access to any IP or Application through the Cloudbrink tunnel by configuring the appropriate application or enterprise service.
 
 ---
 
