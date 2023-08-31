@@ -2,6 +2,8 @@
 
 Ahoy! 🏴‍☠️ This script is designed setup a deny all outbound DNS rule, similating some real-world firewall configurations.
 
+---
+
 ## Why?
 
 Companies like to put in firewalls that deny all outbound traffic. While this is a noble concept, it makes application developers lives painful.
@@ -10,6 +12,8 @@ In this configuration, you have to be sure what the port / protocol / domain / i
 
 Plus, it's cool! 😎
 
+---
+
 ## Disclaimer
 
 While I've made every effort to ensure the script runs smoothly, you may encounter some bugs. The script has been primarily tested on **Raspberry Pi** and **Intel NUC** devices running **Ubuntu 20.04**. Your feedback is crucial for improvements. 🛠️
@@ -17,12 +21,14 @@ While I've made every effort to ensure the script runs smoothly, you may encount
 📧 Report Issues: [john@cloudbrink.io](mailto:john@cloudbrink.io) or [impairments@cloudbrink.io](mailto:impairments@cloudbrink.io)
 
 ---
+
 ## Pre-reqs
 
 A HW device or virtual machine with two network interfaces
 Ubuntu 20.04
 
 ---
+
 ## Usage
 
 This is an interactive script, and its usage is straightforward.
