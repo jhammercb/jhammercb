@@ -3,40 +3,52 @@
 import subprocess
 import sys
 
-def run_command(command):
+def run_command(command_list):
     try:
-        subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        subprocess.run(command_list, check=True, text=True, capture_output=True)
     except subprocess.CalledProcessError as e:
-        print(f"Command {e.cmd} failed with error code {e.returncode}")
+        print(f"Running command: {' '.join(command_list)}")
+        print(f"Stdout: {e.stdout}")
+        print(f"Stderr: {e.stderr}")
+        print(f"Command {command_list} failed with error code {e.returncode}")
 
 def list_interfaces():
     output = subprocess.run(["ls", "/sys/class/net"], capture_output=True, text=True)
     return output.stdout.strip().split("\n")
 
 def apply_qdisc(interface, latency, loss):
-    # Delete existing settings first
-    run_command(["sudo", "tc", "qdisc", "del", "dev", interface, "root"])
-    run_command(["sudo", "tc", "qdisc", "del", "dev", "ifb0", "root"])
+    # Interface names must be strings
+    ifb0 = "ifb0"    
+
+    # Check if a qdisc is already present; if so, delete it
+    qdisc_output = subprocess.run(["sudo", "tc", "qdisc", "show", "dev", interface], capture_output=True, text=True).stdout
+    if "qdisc" in qdisc_output:
+        run_command(["sudo", "tc", "qdisc", "del", "dev", interface, "root"])
+        run_command(["sudo", "tc", "qdisc", "del", "dev", ifb0, "root"])
     
     # Convert the latency and loss into integers and then into two halves for applying on interface and ifb0
-    latency_half = str(int(round(float(latency) / 2)))
-    loss_half = str(int(round(float(loss) / 2)))
+    latency_half = str(int(round(float(latency) / 2))) + "ms"
+    loss_half = str(int(round(float(loss) / 2))) + "%"
 
-    # Add prio qdiscs and filters
-    run_command(["sudo", "tc", "qdisc", "add", "dev", interface, "root", "handle", "1:", "prio"])
-    run_command(["sudo", "tc", "qdisc", "add", "dev", interface, "parent", "1:1", "handle", "10:", "netem", "delay", latency_half + "ms"])
-    run_command(["sudo", "tc", "qdisc", "add", "dev", interface, "parent", "1:2", "handle", "20:", "netem", "loss", loss_half + "%"])
+    # Add prio qdiscs
+    run_command(["sudo", "tc", "qdisc", "add", "dev", interface, "root", "handle", "1:", "prio", "bands", "2", "priomap", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1"])
+    run_command(["sudo", "tc", "qdisc", "add", "dev", ifb0, "root", "handle", "1:", "prio", "bands", "2", "priomap", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1"])
     
-    # Excluding RDP and SSH from impairment on selected interface
+    # Add the netem rules to parent 1:1
+    run_command(["sudo", "tc", "qdisc", "add", "dev", interface, "parent", "1:1", "handle", "10:", "netem", "delay", latency_half])
+    run_command(["sudo", "tc", "qdisc", "replace", "dev", interface, "parent", "1:1", "handle", "20:", "netem", "delay", latency_half])
+    run_command(["sudo", "tc", "qdisc", "add", "dev", ifb0, "parent", "1:1", "handle", "10:", "netem", "delay", latency_half])
+    run_command(["sudo", "tc", "qdisc", "replace", "dev", ifb0, "parent", "1:1", "handle", "20:", "netem", "delay", latency_half])
+    
+    # Add the netem rules to parent 1:2
+    run_command(["sudo", "tc", "qdisc", "add", "dev", interface, "parent", "1:2", "handle", "30:", "netem", "delay", latency_half, "loss", loss_half])
+    run_command(["sudo", "tc", "qdisc", "add", "dev", ifb0, "parent", "1:2", "handle", "30:", "netem", "delay", latency_half, "loss", loss_half])
+
+    # Add filters
     run_command(["sudo", "tc", "filter", "add", "dev", interface, "parent", "1:", "protocol", "ip", "prio", "1", "handle", "0x10", "u32", "match", "ip", "dport", "3389", "0xffff", "flowid", "1:1"])
     run_command(["sudo", "tc", "filter", "add", "dev", interface, "parent", "1:", "protocol", "ip", "prio", "1", "handle", "0x20", "u32", "match", "ip", "sport", "22", "0xffff", "flowid", "1:1"])
-    
-    # Excluding RDP and SSH from impairment on ifb0
-    run_command(["sudo", "tc", "qdisc", "add", "dev", "ifb0", "root", "handle", "1:", "prio"])
-    run_command(["sudo", "tc", "qdisc", "add", "dev", "ifb0", "parent", "1:1", "handle", "10:", "netem", "delay", latency_half + "ms"])
-    run_command(["sudo", "tc", "qdisc", "add", "dev", "ifb0", "parent", "1:2", "handle", "20:", "netem", "loss", loss_half + "%"])
-    run_command(["sudo", "tc", "filter", "add", "dev", "ifb0", "parent", "1:", "protocol", "ip", "prio", "1", "handle", "0x10", "u32", "match", "ip", "sport", "3389", "0xffff", "flowid", "1:1"])
-    run_command(["sudo", "tc", "filter", "add", "dev", "ifb0", "parent", "1:", "protocol", "ip", "prio", "1", "handle", "0x20", "u32", "match", "ip", "dport", "22", "0xffff", "flowid", "1:1"])
+    run_command(["sudo", "tc", "filter", "add", "dev", ifb0, "parent", "1:", "protocol", "ip", "prio", "1", "handle", "0x10", "u32", "match", "ip", "sport", "3389", "0xffff", "flowid", "1:1"])
+    run_command(["sudo", "tc", "filter", "add", "dev", ifb0, "parent", "1:", "protocol", "ip", "prio", "1", "handle", "0x20", "u32", "match", "ip", "dport", "22", "0xffff", "flowid", "1:1"])
 
 def clear_qdisc(interface):
     # Delete existing settings to clear configurations
@@ -48,6 +60,23 @@ def fetch_tc_output(interface):
     qdisc_output = subprocess.run(["sudo", "tc", "qdisc", "show", "dev", interface], capture_output=True, text=True).stdout
     filter_output = subprocess.run(["sudo", "tc", "filter", "show", "dev", interface], capture_output=True, text=True).stdout
     return qdisc_output, filter_output
+
+def setup_ifb0(interface):
+    # Load the ifb module if not already loaded
+    run_command(["sudo", "modprobe", "ifb"])
+    
+    # Set up the ifb0 interface
+    run_command(["sudo", "ip", "link", "set", "dev", "ifb0", "up"])
+    
+    # Clear existing ingress qdisc
+    run_command(["sudo", "tc", "qdisc", "del", "dev", interface, "ingress"])
+    
+    # Add ingress qdisc to the selected interface
+    run_command(["sudo", "tc", "qdisc", "add", "dev", interface, "ingress"])
+    
+    # Redirect ingress traffic from the selected interface to ifb0
+    run_command(["sudo", "tc", "filter", "add", "dev", interface, "parent", "ffff:", "protocol", "ip", "u32", "match", "u32", "0", "0", "action", "mirred", "egress", "redirect", "dev", "ifb0"])
+
 
 def main():
     interfaces = list_interfaces()
@@ -61,9 +90,9 @@ def main():
     action = input("Do you want to apply or clear configurations? (apply/clear): ").strip().lower()
 
     if action == "apply":
+        setup_ifb0(selected_interface)
         latency = input("Enter latency in ms: ")
         loss = input("Enter loss percentage: ")
-        
         apply_qdisc(selected_interface, latency, loss)
         
         print(f"\nLoss Applied: {loss}%")
