@@ -19,7 +19,7 @@ windows_paths = [
     r"C:\Program Files\BrinkAgent\resources\src-electron\main-process\brinkagent\cb_starter_service.txt",
     r"C:\Program Files\BrinkAgent\resources\src-electron\main-process\brinkagent\iplist.txt",
     r"C:\Program Files\BrinkAgent\resources\src-electron\main-process\brinkagent\agent-log.txt",
-    os.path.expandvars(r"C:\Users\%username%\AppData\Roaming\BrinkAgent\logs\main.log"),
+    os.path.join(os.path.expanduser('~'), r"AppData\Roaming\BrinkAgent\logs\main.log"),
     r"C:\ProgramData\BrinkAgent\config.json",
     r"C:\ProgramData\BrinkAgent\config.json_sup",
     r"C:\Windows\System32\LogFiles\Firewall\pfirewall.log"
