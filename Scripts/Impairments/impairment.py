@@ -72,10 +72,16 @@ def fetch_tc_output(interface):
 
 def setup_ifb0(interface):
     # Load the ifb module if not already loaded
-    run_command(["sudo", "modprobe", "ifb"])
-    
-    # Set up the ifb0 interface
-    run_command(["sudo", "ip", "link", "set", "dev", "ifb0", "up"])
+    interfaces = list_interfaces()
+    if "ifb0" not in interfaces:
+        # Load the ifb module if not already loaded
+        run_command(["sudo", "modprobe", "ifb"])
+        
+        # Set up the ifb0 interface
+        run_command(["sudo", "ip", "link", "set", "dev", "ifb0", "up"])
+
+    else:
+        print("ifb0 interface already exists - skipping.")
     
     # Clear existing ingress qdisc
     run_command(["sudo", "tc", "qdisc", "del", "dev", interface, "ingress"])

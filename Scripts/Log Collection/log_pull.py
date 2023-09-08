@@ -2,8 +2,9 @@
 
 import zipfile
 import platform
+import os
 from datetime import datetime
-​
+
 # Paths for each operating system
 windows_paths = [
     r"C:\Windows\System32\cbagent_stats.txt",
@@ -23,7 +24,7 @@ windows_paths = [
     r"C:\ProgramData\BrinkAgent\config.json_sup",
     r"C:\Windows\System32\LogFiles\Firewall\pfirewall.log"
 ]
-​
+
 ubuntu_paths = [
     "/opt/bragent-log.txt",
     "/opt/brinkagent/control.json",
@@ -49,7 +50,7 @@ ubuntu_paths = [
     "/opt/BrinkAgent/DPATestResults.json",
     os.path.expandvars("/home/$USER/.config/BrinkAgent/logs/main*.log")
 ]
-​
+
 macos_paths = [
     "/opt/brinkagent/control.json",
     "/opt/brinkagent/control.json_sup",
@@ -74,10 +75,10 @@ macos_paths = [
     "/opt/BrinkAgent/DPAPolicy.json",
     "/opt/BrinkAgent/DPATestResults.json"
 ]
-​
+
 # Determine the current OS
 current_os = platform.system()
-​
+
 # Select the correct set of paths for the current OS
 if current_os == "Windows":
     paths = windows_paths
@@ -87,12 +88,12 @@ elif current_os == "Darwin":  # MacOS
     paths = macos_paths
 else:
     raise SystemExit("Unsupported operating system")
-​
+
 def compress_files(file_paths, output_file):
     # Check if the output file exists. If yes, delete it.
     if os.path.exists(output_file):
         os.remove(output_file)
-​
+
     # Create a zip file and add each file
     try:
         with zipfile.ZipFile(output_file, 'w') as zipf:
@@ -106,7 +107,7 @@ def compress_files(file_paths, output_file):
         print(f"Files have been successfully compressed and saved as {output_file}")
     except Exception as e:
         print(f"An error occurred while compressing the files: {e}")
-​
+
 # Example usage
 timestamp = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 output_zip_file = os.path.join(os.path.expanduser('~'), 'Downloads', f'cb-logs-{timestamp}.zip')

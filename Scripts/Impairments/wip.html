@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat&display=swap" rel="stylesheet">
+<style>
+body {
+  font-family: 'Montserrat', sans-serif;
+}
+
+.timeline {
+  position: relative;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.timeline::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  background-color: #8d8d8d;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  margin-left: -3px;
+}
+
+.container {
+  padding: 10px 40px;
+  position: relative;
+  background-color: inherit;
+  width: 50%;
+}
+
+.container::after {
+  content: '';
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  right: -17px;
+  background: url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRUw3bL2M3jJTYjMUbxEMghl07MAlXlKBoG6aLSbHrYGA&s') no-repeat center center;
+  background-size: contain;
+  top: 15px;
+  border-radius: 90%;
+  z-index: 1;
+}
+
+.left {
+  left: 0;
+}
+
+.right {
+  left: 50%;
+}
+
+.left::before {
+  content: " ";
+  height: 0;
+  position: absolute;
+  top: 22px;
+  width: 0;
+  z-index: 1;
+  right: 30px;
+  border: medium solid #8d8d8d;
+  border-width: 10px 0 10px 10px;
+  border-color: transparent transparent transparent #8d8d8d;
+}
+
+.right::before {
+  content: " ";
+  height: 0;
+  position: absolute;
+  top: 22px;
+  width: 0;
+  z-index: 1;
+  left: 30px;
+  border: medium solid #8d8d8d;
+  border-width: 10px 10px 10px 0;
+  border-color: transparent #8d8d8d transparent transparent;
+}
+
+.right::after {
+  left: -16px;
+}
+
+.content {
+  padding: 20px 30px;
+  background-color: white;
+  position: relative;
+  border-radius: 6px; 
+}
+
+.content ul {
+  padding-left: 20px;
+}
+
+.content ul li {
+  font-size: 12px;
+}
+</style>
+</head>
+<body>
+
+
+<div class="timeline">
+  <div class="container left">
+    <div class="content">
+      <h2>Q4 2023</h2>
+      <p>Release TBD</p>
+      <ul>
+        <li>Port-level ZTNA</li>
+        <li>RBAC Admin Portal</li>
+        <li>Sole IPv6 Support</li>
+        <li>Mobile Support (Android)</li>
+        <li>22.04 Ubuntu Brink App</li>
+        <li>Session Termination</li>
+        <li>Per-user Packet Recovery</li>
+        <li>Bandwidth Estimator</li>
+        <li>Admin Portal Filtering</li>
+        <li>Edge Selection Enhancment</li>
+        <li>New Win/Mac OS Support</li>
+      </div>
+  </div>
+  <div class="container right">
+    <div class="content">
+      <h2>Sept 2023</h2>
+      <p>Release 12.3</p>
+      <ul>
+        <li>iOS Support</li>
+        <li>Brink App Upgrade Policy</li>
+        <li>UCaaS Apps Profile Refresh</li>
+        <li>IPv6 support on AWS Connector</li>
+        <li>UI notification - Internet Down</li>
+        <li>DPA .PFX Cert Validation Support</li>
+      </div>
+  </div>
+  <div class="container left">
+    <div class="content">
+      <h2>July 1st, 2023</h2>
+      <p>Release 12.2</p>
+      <ul>
+        <li>Auto Login</li>
+        <li>"OR" Conditions DPA Feature</li>
+        <li>Cert Validation DPA Check</li>
+    </div>
+  </div>
+  <div class="container right">
+    <div class="content">
+      <h2>April 1st, 2023</h2>
+      <p>Release 12.1</p>
+      <ul>
+        <li>Bridge Mode</li>
+        <li>Version compatibility</li>
+        <li>Logs retrieve API</li>
+        <li>UI Filtering</li>
+        <li>Zoom Room App</li>
+        <li>Cloudbrink Scalability</li>
+        <li>Citrix Ready Validation</li>
+    </div>
+  </div>
+  <div class="container left">
+    <div class="content">
+      <h2>March 11th, 2023</h2>
+      <p>Release 11.13</p>
+      <ul>
+        <li>Private IP on Local Interface</li>
+        <li>Dynamic Config Update</li>
+        <li>Simplified Log Collection</li>
+        <li>Brink App Connection Resiliency</li>
+        <li>Connector UI Status</li>
+        <li>DNS Suffix Handling</li>
+        <li>Troubleshooting Log Updates</li>
+    </div>
+      </div>
+  <div class="container right">
+    <div class="content">
+      <h2>February 1st, 2023</h2>
+      <p>Release 11.12</p>
+      <ul>
+        <li>Device Posture Assessment</li>
+        <li>AWS Workspace Profile</li>
+        <li>Portal Geolocation</li>
+        <li>Connector UI Status</li>
+        <li>GARP for HA</li>
+        <li>MAC Based DHCP</li>
+        <li>HA over LAN</li>
+    </div>
+      </div>
+  <div class="container left">
+    <div class="content">
+      <h2>December 1st, 2022</h2>
+      <p>Release 11.11</p>
+      <ul>
+        <li>Automatic Connector Selection</li>
+        <li>Forced Agent Upgrade</li>
+        <li>Private IP Status</li>
+        <li>UI Load Time Optimization</li>
+        <li>Clickthrough Enabled</li>
+        <li>Built-in OTP Auth</li>
+        <li>Improved Agent UI</li>
+    </div>
+      </div>
+        <div class="container right">
+    <div class="content">
+      <h2>August 1st, 2022</h2>
+      <p>Release 11.8</p>
+      <ul>
+        <li>MSP Portal</li>
+        <li>MSP RBAC</li>
+        <li>Ubuntu BrinkAgent</li>
+        <li>Multi-IDP Support</li>
+        <li>Brink Quality Drill Down</li>
+    </div>
+      </div>
+        <div class="container left">
+    <div class="content">
+      <h2>June 15th, 2021</h2>
+      <p>Release 11.7</p>
+      <ul>
+        <li>Static IP Pools</li>
+        <li>Server Initiated Traffic</li>
+        <li>VLAN Tags</li>
+        <li>TCP DNS</li>
+        <li>Portal Performance Page</li>
+        <li>Portal Analytics Page</li>
+        <li>General UI Improvements</li>
+    </div>
+      </div>
+        <div class="container right">
+    <div class="content">
+      <h2>May 1st, 2021</h2>
+      <p>Release 11.6</p>
+      <ul>
+        <li>mTLS Support</li>
+        <li>IPv6 Support</li>
+        <li>New Admin Portal</li>
+        <li>Admin Privilege Removal</li>
+        <li>OneLogin IDP</li>
+        <li>Brink Quality Index</li>
+    </div>
+      </div>
+        <div class="container left">
+    <div class="content">
+      <h2>March 11th, 2021</h2>
+      <p>Release 11.4</p>
+      <ul>
+        <li>Increased TCP Performance</li>
+        <li>Outbound Initiated Connector</li>
+        <li>Connector to Multi-Edge Support</li>
+        <li>Connector Active/Passive</li>
+        <li>Okta IDP</li>
+        <li>Full Tunnel Support</li>
+        <li>TLS 1.3</li>
+        <li>QoX Metric</li>
+        <li>Agent Upgrade</li>
+        <li>Device Posture</li>
+  </div>
+  </div>
+  <!-- more containers can be added here for more years/events -->
+</div>
+
+</body>
+</html>
