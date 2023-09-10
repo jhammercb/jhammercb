@@ -64,6 +64,7 @@ def clear_qdisc(selected_interface):
     # Delete existing settings to clear configurations
     run_command(["sudo", "tc", "qdisc", "del", "dev", selected_interface, "root"], suppress_errors=True)
     run_command(["sudo", "tc", "qdisc", "del", "dev", "ifb0", "root"], suppress_errors=True)
+    run_command(["sudo", "tc", "qdisc", "del", "dev", selected_interface, "ingress"], suppress_errors=True)
 
     # Remove the ifb
     run_command(["sudo", "ip", "link", "set", "dev", "ifb0", "down"])
