@@ -31,7 +31,7 @@ def main():
     google_drive_path = "/Users/johnweidenhammer/Library/CloudStorage/GoogleDrive-john@cloudbrink.com/Shared drives/Cloudbrink Sales/Customers"
     
     # The name of the file you want to copy
-    file_name = "Cloudbrink_Security.pptx"
+    file_name = "Cloudbrink_Template_Sept.pptx"
     
     create_folder_and_copy_file(source_folder, google_drive_path, file_name)
 
