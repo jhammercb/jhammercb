@@ -3,11 +3,12 @@
 import os
 import subprocess
 import hashlib
+import getpass
 
-def download_tar_file():
+def download_tar_file(username, password):
     print("Downloading the tar file...")
     cmd = [
-        "sudo", "curl", "--user", "cbuser210:CBUSR#1729", 
+        "sudo", "curl", "--user", f"{username}:{password}", 
         "-o", "/root/config_connector-12.2.6_1.tar.gz", 
         "https://d.cloudbrink.com/common/config_connector-12.2.6_1.tar.gz"
     ]
@@ -34,13 +35,16 @@ def execute_script():
     subprocess.run(cmd, check=True)
 
 def main():
-    download_tar_file()
+    username = input("Please enter the username for downloading the tar file: ")
+    password = getpass.getpass("Please enter the password for downloading the tar file: ")
+
+    download_tar_file(username, password)
     if not verify_md5sum():
         print("MD5 checksum verification failed. Exiting...")
         return
     extract_files()
     execute_script()
-    print("The configure_node.sh script will now reboot the VM.")
+    print("The configure_node.sh script will now reboot the VM. Please be aware!")
 
 if __name__ == "__main__":
     main()
