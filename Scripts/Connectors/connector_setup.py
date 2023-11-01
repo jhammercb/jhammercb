@@ -34,6 +34,11 @@ def execute_script():
     cmd = ["sudo", "bash", "configure_node.sh"]
     subprocess.run(cmd, check=True)
 
+def setup_cron_on_reboot(uuid):
+    print("Setting up the post-reboot cron job...")
+    cron_command = f"bash -c 'cd /config_connector-12.2.6/config_connector-12.2.6 && bash configure_connector.sh -o {uuid} && (crontab -l | grep -v configure_connector.sh | crontab -)'"
+    subprocess.run(f'(crontab -l; echo "@reboot {cron_command}") | crontab -', shell=True, check=True)
+
 def main():
     username = input("Please enter the username for downloading the tar file: ")
     password = getpass.getpass("Please enter the password for downloading the tar file: ")
@@ -43,8 +48,12 @@ def main():
         print("MD5 checksum verification failed. Exiting...")
         return
     extract_files()
+    
+    uuid = input("Please enter the UUID for the configure_connector.sh command: ")
+    setup_cron_on_reboot(uuid)
+    
+    print("The configure_node.sh script will now reboot the VM.")
     execute_script()
-    print("The configure_node.sh script will now reboot the VM. Please be aware!")
 
 if __name__ == "__main__":
     main()
