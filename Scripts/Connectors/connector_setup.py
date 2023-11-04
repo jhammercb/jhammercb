@@ -36,8 +36,20 @@ def execute_script():
 
 def setup_cron_on_reboot(uuid):
     print("Setting up the post-reboot cron job...")
-    cron_command = f"bash -c 'cd /config_connector-12.2.6/config_connector-12.2.6 && bash configure_connector.sh -o {uuid} && (crontab -l | grep -v configure_connector.sh | crontab -)'"
+    cron_command = f"bash -c 'cd /home/cb/config_connector-12.2.6/configure_connector.sh && bash configure_connector.sh -o {uuid} && (crontab -l | grep -v configure_connector.sh | crontab -)'"
     subprocess.run(f'(crontab -l; echo "@reboot {cron_command}") | crontab -', shell=True, check=True)
+
+def add_path_to_script(script_path):
+    path_addition = "export PATH=$PATH:/usr/local/sbin:/usr/sbin:/sbin\n"
+
+    with open(script_path, 'r') as file:
+        contents = file.readlines()
+
+    if not any(line.startswith('export PATH=') for line in contents):
+        contents.insert(1, path_addition)
+
+    with open(script_path, 'w') as file:
+        file.writelines(contents)
 
 def main():
     username = input("Please enter the username for downloading the tar file: ")
@@ -49,6 +61,9 @@ def main():
         return
     extract_files()
     
+    script_path = "/home/cb/config_connector-12.2.6/configure_connector.sh"
+    add_path_to_script(script_path)
+
     uuid = input("Please enter the UUID for the configure_connector.sh command: ")
     setup_cron_on_reboot(uuid)
     
