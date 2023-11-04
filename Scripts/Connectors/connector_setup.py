@@ -67,11 +67,6 @@ def decrypt_credentials(key, encrypted_username, encrypted_password):
     return decrypted_username, decrypted_password
 
 def main():
-    # Set the environment variables for this script's execution context
-    os.environ['ENCRYPTION_KEY'] = """b'2e7t0F1H5WyQR0g6CwI3DOcoA_D1r8BU8nzZMyDW7L0='"""
-    os.environ['ENCRYPTED_USERNAME'] = """b'gAAAAABlRl5h1Ixo2Vdw4SwDPifF4k2a5JRgqWmJmge2E45Qcuoa-_YgzCifDMw2iw_LnMThOmy3sqMmQVS3Fy-xi8fGQMofrQ=='"""
-    os.environ['ENCRYPTED_PASSWORD'] = """b'gAAAAABlRl5h4QKcN__Wd7F8Q9hM7PvUbM1IBu82QqltkCGinZRVtdfv4WYNgKzvmAjMNN-HPGH_0GjeUFfrlQ2DbUEJRJk4xA=='"""
-
     # Load the key from an environment variable
     key = os.environ.get('ENCRYPTION_KEY')
     
