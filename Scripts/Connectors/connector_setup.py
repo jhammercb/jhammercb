@@ -25,7 +25,6 @@ install_and_import('cryptography')
 
 import os
 from cryptography.fernet import Fernet
-import base64
 
 def download_tar_file(username, password):
     print("Downloading the tar file...")
@@ -61,26 +60,17 @@ def setup_cron_on_reboot(uuid):
     cron_command = f"bash -c 'cd /config_connector-12.2.6/config_connector-12.2.6 && bash configure_connector.sh -o {uuid} && (crontab -l | grep -v configure_connector.sh | crontab -)'"
     run_subprocess(f'(crontab -l; echo "@reboot {cron_command}") | crontab -', shell=True, check=True)
 
-def decrypt_credentials(encryption_key, encrypted_username, encrypted_password):
-    # Convert the base64-encoded strings to bytes
-    key = base64.urlsafe_b64decode(encryption_key)
-    encrypted_username_bytes = base64.urlsafe_b64decode(encrypted_username)
-    encrypted_password_bytes = base64.urlsafe_b64decode(encrypted_password)
-    
-    # Create the Fernet cipher suite
+def decrypt_credentials(key, encrypted_username, encrypted_password):
     cipher_suite = Fernet(key)
-    
-    # Decrypt the credentials
-    decrypted_username = cipher_suite.decrypt(encrypted_username_bytes).decode('utf-8')
-    decrypted_password = cipher_suite.decrypt(encrypted_password_bytes).decode('utf-8')
-    
+    decrypted_username = cipher_suite.decrypt(encrypted_username).decode()
+    decrypted_password = cipher_suite.decrypt(encrypted_password).decode()
     return decrypted_username, decrypted_password
 
 def main():
     # Set the environment variables for this script's execution context
-    os.environ['ENCRYPTION_KEY'] = 'UufdHpchcGBCeW8lWmlIE4pdYblWWpkpEqSP5ZH46DM='
-    os.environ['ENCRYPTED_USERNAME'] = 'gAAAAABlRnOAxNnx5EL7il68VJ1QIe50Q7Q-iynZ9Xj7lt-DwnPw-MgUOCqDoKHYslLS2-mGBVpQX77KlC3Jx4uL0sBuXvosOg=='
-    os.environ['ENCRYPTED_PASSWORD'] = 'gAAAAABlRnOBn87tRPf_xEC_1Q2GAZXXDDI5bGb6jS0Gy7pn_VeuqMsShUB92dob2R_gd5OC3JyQ8Da2kLX2Pwa99kXzfTvCIw=='
+    os.environ['ENCRYPTION_KEY'] = '2e7t0F1H5WyQR0g6CwI3DOcoA_D1r8BU8nzZMyDW7L0='
+    os.environ['ENCRYPTED_USERNAME'] = 'gAAAAABlRl5h1Ixo2Vdw4SwDPifF4k2a5JRgqWmJmge2E45Qcuoa-_YgzCifDMw2iw_LnMThOmy3sqMmQVS3Fy-xi8fGQMofrQ=='
+    os.environ['ENCRYPTED_PASSWORD'] = 'gAAAAABlRl5h4QKcN__Wd7F8Q9hM7PvUbM1IBu82QqltkCGinZRVtdfv4WYNgKzvmAjMNN-HPGH_0GjeUFfrlQ2DbUEJRJk4xA=='
 
     # Load the key from an environment variable
     key = os.environ.get('ENCRYPTION_KEY')
