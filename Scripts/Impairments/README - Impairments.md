@@ -66,6 +66,7 @@ The script will first list your available interfaces, allowing you to select whi
 - **Directional Loss**: Set loss in a single direction (tx or rx)
 - **Jitter**: Add jitter option
 - **Gilbert-Elliott Model**: Implement this model of loss
+- **Frame Replay**: Build in the ability to capture a baseline traffic pattern and replay it
 - **Built-In Tests**: Include a download test for baseline performance (without CB)
 - **File Transfer Capabilities**: Offer built-in SMB, FTP, or other features
 - **Error Validation**: More robust error checks
