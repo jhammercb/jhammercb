@@ -36,7 +36,7 @@ def execute_script():
 
 def setup_cron_on_reboot(uuid):
     print("Setting up the post-reboot cron job...")
-    cron_command = f"bash -c 'cd /home/cb/config_connector-12.2.6/configure_connector.sh && bash configure_connector.sh -o {uuid} && (crontab -l | grep -v configure_connector.sh | crontab -)'"
+    cron_command = f"bash -c 'cd /home/cb/config_connector-12.2.6 && sudo bash configure_connector.sh -o {uuid} && (crontab -l | grep -v configure_connector.sh | crontab -)'"
     subprocess.run(f'(crontab -l; echo "@reboot {cron_command}") | crontab -', shell=True, check=True)
 
 def add_path_to_script(script_path):
