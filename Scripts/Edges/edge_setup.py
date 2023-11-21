@@ -12,9 +12,12 @@ def run_command(command):
 run_command("sudo apt update")
 run_command("sudo apt upgrade -y")
 
-# Download .deb packages
-run_command("wget https://storage.cloud.google.com/cb-edge-store-us/wren/edgeagent-12.2.7-amd64.deb")
-run_command("wget https://storage.cloud.google.com/cb-edge-store-us/wren/cbpop-12.2.415-ubuntu2004-amd64.deb")
+# Install redis-server
+run_command("sudo apt install redis-server -y")
+
+# Download .deb packages using curl
+run_command("curl -o edgeagent-12.2.7-amd64.deb https://storage.cloud.google.com/cb-edge-store-us/wren/edgeagent-12.2.7-amd64.deb")
+run_command("curl -o cbpop-12.2.415-ubuntu2004-amd64.deb https://storage.cloud.google.com/cb-edge-store-us/wren/cbpop-12.2.415-ubuntu2004-amd64.deb")
 
 # Install .deb packages
 run_command("sudo dpkg -i edgeagent-12.2.7-amd64.deb")
