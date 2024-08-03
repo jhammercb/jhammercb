@@ -15,6 +15,7 @@
             align-items: center;
             min-height: 100vh;
             overflow-y: auto;
+            text-align: left;
         }
         .container {
             background-color: #fff;
@@ -24,7 +25,12 @@
             max-width: 600px;
             width: 100%;
             margin: 20px;
-            text-align: center;
+            text-align: left; 
+        }
+        .container img {
+            display: block;
+            margin: 0 auto 40px auto;
+            max-width: 200px;
         }
         h1 {
             text-align: center;
@@ -35,6 +41,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            width: 100%;
         }
         label {
             margin-top: 10px;
@@ -51,6 +58,7 @@
             width: 100%;
             box-sizing: border-box;
             font-family: 'Montserrat', sans-serif;
+            text-align: left; 
         }
         input[type="submit"] {
             background-color: #28a745;
@@ -59,6 +67,7 @@
             cursor: pointer;
             margin-top: 20px;
             font-weight: 600;
+            text-align: center;
         }
         input[type="submit"]:hover {
             background-color: #218838;
@@ -142,7 +151,7 @@
 </head>
 <body>
     <div class="container">
-        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTuAoWa-psvka0jVjXQwyGIWHHhs-I8eYTwuQ&s" alt="Logo" style="max-width: 200px; margin-bottom: 40px;">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTuAoWa-psvka0jVjXQwyGIWHHhs-I8eYTwuQ&s" alt="Logo">
         <h1>Cloud-init Generator</h1>
         <form action="{{ url_for('submit') }}" method="post" onsubmit="return validateForm()">
             <label for="HYPERVISOR">Platform:</label>
@@ -162,8 +171,7 @@
 
             <label for="ARM_MODE">ARM Mode:</label>
             <select id="ARM_MODE" name="ARM_MODE" required onchange="toggleDatacenterFields()">
-                <option value="" disabled selected>Select ARM Mode</option>
-                <option value="1">1</option>
+                <option value="1" selected>1</option>
                 <option value="2">2</option>
             </select>
 
