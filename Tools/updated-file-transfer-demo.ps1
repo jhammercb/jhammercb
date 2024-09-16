@@ -9,7 +9,6 @@ $iterations     = 10           # Number of times to download the file
 $results        = [System.Collections.Generic.List[PSObject]]::new()
 
 # Determine Download and Log Paths
-
 # Get the Downloads folder path
 $shell = New-Object -ComObject Shell.Application
 $downloadFolder = $shell.Namespace('shell:Downloads').Self.Path
