@@ -1,4 +1,4 @@
- # Define the available file sizes and URLs
+# Define the available file sizes and URLs
 $sizes = @(
     @{ Size = "5MB"; URL = "http://212.183.159.230/5MB.zip" },
     @{ Size = "10MB"; URL = "http://212.183.159.230/10MB.zip" },
@@ -47,11 +47,14 @@ if ([string]::IsNullOrWhiteSpace($numDLInput)) {
 # Initialize the results list
 $results = [System.Collections.Generic.List[PSObject]]::new()
 
-# Get the Downloads folder path
+# Determine Download Path using Shell.Application
 $shell = New-Object -ComObject Shell.Application
-$downloadFolder = $shell.Namespace('shell:Downloads').Self.Path
+$downloadsFolder = $shell.Namespace('shell:Downloads').Self.Path
 
-$destinationPath = Join-Path $downloadFolder $fileName
+# Alternative method if needed (uncomment if necessary)
+# $downloadsFolder = "$([Environment]::GetFolderPath([Environment+SpecialFolder]::UserProfile))\Downloads"
+
+$destinationPath = Join-Path $downloadsFolder $fileName
 
 # Print out header
 Write-Host ""
@@ -66,12 +69,10 @@ function Download-File {
         [int]$iteration
     )
 
-    # Create WebClient instance
     $webClient = New-Object System.Net.WebClient
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 
     try {
-        # Download the file
         $webClient.DownloadFile($downloadUrl, $destinationPath)
         $stopwatch.Stop()
 
@@ -89,7 +90,6 @@ function Download-File {
         $stopwatch.Stop()
         $elapsed = 0
         $speed = 0
-        # Use string formatting to avoid the colon issue
         Write-Host ("Error downloading file on iteration {0}: {1}" -f $iteration, $_.Exception.Message)
     } finally {
         $webClient.Dispose()
@@ -119,15 +119,9 @@ for ($i = 1; $i -le $numDL; $i++) {
 # Calculate and display averages
 $timeAvg  = [Math]::Round(($results.Time | Measure-Object -Average | Select -ExpandProperty Average), 3)
 $speedAvg = [Math]::Round(($results.Speed | Measure-Object -Average | Select -ExpandProperty Average), 2)
-$outputAvg = [PSCustomObject]@{
-    Iteration = "Average"
-    Time      = $timeAvg
-    Speed     = $speedAvg
-}
-$results.Add($outputAvg)
 
-Write-Host ("{0}`t`t{1}`t`t{2}`tMbps" -f $outputAvg.Iteration, $outputAvg.Time, $outputAvg.Speed)
+Write-Host ("Average`t`t{0}`t`t{1}`tMbps" -f $timeAvg, $speedAvg)
 
-# Keep the console window open
+# Keep the console window open (optional)
 Write-Host "Press Enter to exit" -ForegroundColor Gray -NoNewline
-[void][System.Console]::ReadKey($true) 
+[void][System.Console]::ReadKey($true)
